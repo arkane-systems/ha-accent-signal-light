@@ -66,6 +66,7 @@ from .const import (
     ATTR_ACCENT_NAME,
     ATTR_PRIORITY,
     ATTR_SIGNAL_NAME,
+    ATTR_UNDERLYING_ENTITY_ID,
     DATA_COORDINATOR,
     DEFAULT_PRIORITY,
     DOMAIN,
@@ -496,6 +497,13 @@ class SignalBaseLight(LightEntity, RestoreEntity):
     def max_color_temp_kelvin(self) -> int | None:
         """Return maximum supported color temperature (Kelvin), if available."""
         return self._underlying_max_color_temp_kelvin
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional diagnostic attributes for the base layer."""
+        return {
+            ATTR_UNDERLYING_ENTITY_ID: self.coordinator.underlying_entity_id,
+        }
 
     # ── LightEntity turn on/off ────────────────────────────────────────────────
 

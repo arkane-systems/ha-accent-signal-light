@@ -10,8 +10,9 @@ Sensor summary
 ``active_signal``
     State: the name of the highest-priority signal currently in the queue, or
     ``"none"`` when the queue is empty.
-    Attributes: the full set of light attributes for the active signal (empty
-    dict when no signal is active).
+    Attributes: ``signal_wake_priority`` (the configured wake threshold, always
+    present) plus the full set of light attributes for the active signal
+    (only present when a signal is active).
 
 ``active_accent``
     State: the name of the highest-priority accent currently on the stack, or
@@ -42,6 +43,10 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    ATTR_ATTRS,
+    ATTR_NAME,
+    ATTR_PRIORITY,
+    ATTR_SIGNAL_WAKE_PRIORITY,
     DATA_COORDINATOR,
     DOMAIN,
     SENSOR_ACCENT_STACK,
@@ -168,18 +173,19 @@ class ActiveSignalSensor(_SignalLightSensorBase):
     def native_value(self) -> str:
         """Return the name of the active signal, or 'none'."""
         active = self.coordinator.active_signal
-        return active["name"] if active is not None else "none"
+        return active[ATTR_NAME] if active is not None else "none"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the light attributes of the active signal."""
-        active = self.coordinator.active_signal
-        if active is None:
-            return {}
-        return {
-            "priority": active["priority"],
-            **active["attrs"],
+        """Return the light attributes of the active signal, plus the wake threshold."""
+        attrs: dict[str, Any] = {
+            ATTR_SIGNAL_WAKE_PRIORITY: self.coordinator.signal_wake_priority,
         }
+        active = self.coordinator.active_signal
+        if active is not None:
+            attrs[ATTR_PRIORITY] = active[ATTR_PRIORITY]
+            attrs.update(active[ATTR_ATTRS])
+        return attrs
 
 
 class ActiveAccentSensor(_SignalLightSensorBase):
@@ -204,7 +210,7 @@ class ActiveAccentSensor(_SignalLightSensorBase):
     def native_value(self) -> str:
         """Return the name of the active accent, or 'none'."""
         active = self.coordinator.active_accent
-        return active["name"] if active is not None else "none"
+        return active[ATTR_NAME] if active is not None else "none"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -213,8 +219,8 @@ class ActiveAccentSensor(_SignalLightSensorBase):
         if active is None:
             return {}
         return {
-            "priority": active["priority"],
-            **active["attrs"],
+            ATTR_PRIORITY: active[ATTR_PRIORITY],
+            **active[ATTR_ATTRS],
         }
 
 
@@ -250,9 +256,9 @@ class SignalQueueSensor(_SignalLightSensorBase):
         return {
             "queue": [
                 {
-                    "name":     entry["name"],
-                    "priority": entry["priority"],
-                    "attrs":    entry["attrs"],
+                    ATTR_NAME:     entry[ATTR_NAME],
+                    ATTR_PRIORITY: entry[ATTR_PRIORITY],
+                    ATTR_ATTRS:    entry[ATTR_ATTRS],
                 }
                 for entry in self.coordinator.signal_queue
             ]
@@ -291,9 +297,9 @@ class AccentStackSensor(_SignalLightSensorBase):
         return {
             "stack": [
                 {
-                    "name":     entry["name"],
-                    "priority": entry["priority"],
-                    "attrs":    entry["attrs"],
+                    ATTR_NAME:     entry[ATTR_NAME],
+                    ATTR_PRIORITY: entry[ATTR_PRIORITY],
+                    ATTR_ATTRS:    entry[ATTR_ATTRS],
                 }
                 for entry in self.coordinator.accent_stack
             ]

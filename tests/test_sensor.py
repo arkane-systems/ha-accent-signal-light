@@ -6,6 +6,7 @@ from homeassistant.helpers import entity_registry as er
 
 from custom_components.signal_light.const import (
     DATA_COORDINATOR,
+    DEFAULT_SIGNAL_WAKE_PRIORITY,
     DOMAIN,
     SENSOR_ACTIVE_SIGNAL,
 )
@@ -28,14 +29,20 @@ def test_active_signal_sensor_reports_active_entry(fake_coordinator, fake_config
     sensor = ActiveSignalSensor(fake_coordinator, fake_config_entry)
 
     assert sensor.native_value == "alarm"
-    assert sensor.extra_state_attributes == {"priority": 100, "brightness": 200}
+    assert sensor.extra_state_attributes == {
+        "signal_wake_priority": DEFAULT_SIGNAL_WAKE_PRIORITY,
+        "priority": 100,
+        "brightness": 200,
+    }
 
 
 def test_active_signal_sensor_none_when_empty(fake_coordinator, fake_config_entry) -> None:
     sensor = ActiveSignalSensor(fake_coordinator, fake_config_entry)
 
     assert sensor.native_value == "none"
-    assert sensor.extra_state_attributes == {}
+    assert sensor.extra_state_attributes == {
+        "signal_wake_priority": DEFAULT_SIGNAL_WAKE_PRIORITY,
+    }
 
 
 def test_active_accent_sensor_reports_active_entry(fake_coordinator, fake_config_entry) -> None:

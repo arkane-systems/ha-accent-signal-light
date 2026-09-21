@@ -154,13 +154,29 @@ single HA device named after the instance.
 The base light (`light.<name>_base`) behaves like any standard HA light.  Use
 it in dashboards or automations to set the default ambient state.  Note that
 its reported state always reflects the **base layer**, even when an accent or
-signal is overriding the physical light.
+signal is overriding the physical light.  It also exposes
+`underlying_entity_id` as an attribute — the `entity_id` of the physical light
+(or light group) this instance wraps — useful for debugging or for automations
+that need to inspect the underlying entity's real state directly.
 
 ### Sensor entities
 
 All sensor entities report their data as both `state` and `extra_state_attributes`.
 
-**Active Signal / Active Accent sensors:**
+**Active Signal sensor:**
+```
+state:       "doorbell"
+attributes:
+  signal_wake_priority: 5000
+  priority:  90
+  hs_color:  [0, 0]
+  brightness: 255
+```
+`signal_wake_priority` is the configured wake threshold and is always present,
+even when no signal is active (in which case `priority` and the light
+attributes are absent).
+
+**Active Accent sensor:**
 ```
 state:       "doorbell"
 attributes:

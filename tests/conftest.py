@@ -21,6 +21,7 @@ from pytest_homeassistant_custom_component.common import (
 from custom_components.signal_light.const import (
     CONF_SIGNAL_WAKE_PRIORITY,
     CONF_UNDERLYING_ENTITY_ID,
+    DEFAULT_SIGNAL_WAKE_PRIORITY,
     DOMAIN,
 )
 from custom_components.signal_light.coordinator import SignalLightCoordinator
@@ -147,6 +148,7 @@ class FakeCoordinator:
         self.hass = _FakeHass(self)
         self.base_on = False
         self.base_attrs: dict[str, Any] = {}
+        self.signal_wake_priority = DEFAULT_SIGNAL_WAKE_PRIORITY
         self.active_signal: dict[str, Any] | None = None
         self.active_accent: dict[str, Any] | None = None
         self.signal_queue: list[dict[str, Any]] = []
