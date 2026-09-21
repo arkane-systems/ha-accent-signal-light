@@ -204,7 +204,12 @@ class SignalLightConfigFlow(ConfigFlow, domain=DOMAIN):
         # Offer a friendly name field and a selector restricted to known lights.
         name_default = reconfigure_entry.title if reconfigure_entry else ""
         wake_priority_default = (
-            reconfigure_entry.data[CONF_SIGNAL_WAKE_PRIORITY]
+            # Entries created before signal_wake_priority existed never
+            # stored it; fall back the same way the coordinator's own
+            # signal_wake_priority property does.
+            reconfigure_entry.data.get(
+                CONF_SIGNAL_WAKE_PRIORITY, DEFAULT_SIGNAL_WAKE_PRIORITY
+            )
             if reconfigure_entry
             else DEFAULT_SIGNAL_WAKE_PRIORITY
         )

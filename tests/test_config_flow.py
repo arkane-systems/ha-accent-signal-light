@@ -110,6 +110,42 @@ async def test_reconfigure_step_shows_form(hass, mock_config_entry) -> None:
     assert result["step_id"] == "reconfigure"
 
 
+async def test_reconfigure_step_handles_entry_predating_wake_priority(
+    hass, mock_underlying_light
+) -> None:
+    """Entries created before signal_wake_priority existed lack that data key.
+
+    Regression test: the reconfigure form must fall back to
+    DEFAULT_SIGNAL_WAKE_PRIORITY (like the coordinator's own property does)
+    instead of raising KeyError when building the pre-filled form.
+    """
+    legacy_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Legacy Instance",
+        data={CONF_UNDERLYING_ENTITY_ID: mock_underlying_light},
+    )
+    legacy_entry.add_to_hass(hass)
+
+    result = await legacy_entry.start_reconfigure_flow(hass)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {}
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "name": legacy_entry.title,
+            CONF_UNDERLYING_ENTITY_ID: mock_underlying_light,
+            CONF_SIGNAL_WAKE_PRIORITY: DEFAULT_SIGNAL_WAKE_PRIORITY,
+        },
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert legacy_entry.data[CONF_SIGNAL_WAKE_PRIORITY] == DEFAULT_SIGNAL_WAKE_PRIORITY
+
+
 async def test_reconfigure_step_updates_wake_priority_in_place(
     hass, mock_config_entry
 ) -> None:
