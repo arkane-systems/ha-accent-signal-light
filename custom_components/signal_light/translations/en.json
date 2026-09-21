@@ -14,6 +14,20 @@
           "signal_wake_priority": "Signals must have a priority greater than this value to turn the light on while the base layer is off.",
           "underlying_entity_id": "The light entity that Accent & Signal Light will control."
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Accent & Signal Light",
+        "description": "Change the underlying light entity, signal wake priority, or name of this Accent & Signal Light instance. Entity IDs and existing accent/signal state are unaffected.",
+        "data": {
+          "name": "Name",
+          "signal_wake_priority": "Signal wake priority",
+          "underlying_entity_id": "Underlying light entity"
+        },
+        "data_description": {
+          "name": "A friendly name for this instance (e.g. 'Living Room Accent & Signal Light').",
+          "signal_wake_priority": "Signals must have a priority greater than this value to turn the light on while the base layer is off.",
+          "underlying_entity_id": "The light entity that Accent & Signal Light will control."
+        }
       }
     },
     "error": {
@@ -21,7 +35,8 @@
       "already_configured": "This light entity is already managed by another Accent & Signal Light instance."
     },
     "abort": {
-      "already_configured": "This light entity is already configured."
+      "already_configured": "This light entity is already configured.",
+      "reconfigure_successful": "Reconfiguration successful."
     }
   }
 }

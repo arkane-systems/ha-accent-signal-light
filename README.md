@@ -134,6 +134,15 @@ Signals are added/removed via the `signal_light.set_signal` and
 You can create multiple Accent & Signal Light instances — one per physical light or
 group you want to manage this way.
 
+### Reconfiguring an existing instance
+
+To change an instance's underlying light entity, signal wake priority, or name later,
+use its **Reconfigure** option (from the integration's three-dot menu on the
+**Settings → Devices & Services** page) instead of deleting and re-adding it. Deleting
+and recreating an instance assigns it a new device and new entity IDs, which breaks any
+automations, dashboards, or scripts that reference the old ones; reconfiguring updates
+the existing instance in place and reloads it, leaving its entity IDs untouched.
+
 ---
 
 ## 4. Entities created
