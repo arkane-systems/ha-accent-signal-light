@@ -134,6 +134,15 @@ Signals are added/removed via the `signal_light.set_signal` and
 You can create multiple Accent & Signal Light instances — one per physical light or
 group you want to manage this way.
 
+### Reconfiguring an existing instance
+
+To change an instance's underlying light entity, signal wake priority, or name later,
+use its **Reconfigure** option (from the integration's three-dot menu on the
+**Settings → Devices & Services** page) instead of deleting and re-adding it. Deleting
+and recreating an instance assigns it a new device and new entity IDs, which breaks any
+automations, dashboards, or scripts that reference the old ones; reconfiguring updates
+the existing instance in place and reloads it, leaving its entity IDs untouched.
+
 ---
 
 ## 4. Entities created
@@ -154,13 +163,29 @@ single HA device named after the instance.
 The base light (`light.<name>_base`) behaves like any standard HA light.  Use
 it in dashboards or automations to set the default ambient state.  Note that
 its reported state always reflects the **base layer**, even when an accent or
-signal is overriding the physical light.
+signal is overriding the physical light.  It also exposes
+`underlying_entity_id` as an attribute — the `entity_id` of the physical light
+(or light group) this instance wraps — useful for debugging or for automations
+that need to inspect the underlying entity's real state directly.
 
 ### Sensor entities
 
 All sensor entities report their data as both `state` and `extra_state_attributes`.
 
-**Active Signal / Active Accent sensors:**
+**Active Signal sensor:**
+```
+state:       "doorbell"
+attributes:
+  signal_wake_priority: 5000
+  priority:  90
+  hs_color:  [0, 0]
+  brightness: 255
+```
+`signal_wake_priority` is the configured wake threshold and is always present,
+even when no signal is active (in which case `priority` and the light
+attributes are absent).
+
+**Active Accent sensor:**
 ```
 state:       "doorbell"
 attributes:

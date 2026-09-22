@@ -11,6 +11,7 @@ from custom_components.signal_light.const import (
     ATTR_ACCENT_NAME,
     ATTR_PRIORITY,
     ATTR_SIGNAL_NAME,
+    ATTR_UNDERLYING_ENTITY_ID,
     DATA_COORDINATOR,
     DOMAIN,
     SERVICE_CLEAR_ACCENT,
@@ -47,6 +48,16 @@ def test_state_properties_proxy_coordinator(fake_coordinator, fake_config_entry)
     assert entity.brightness == 100
     assert entity.hs_color == (10.0, 20.0)
     assert entity.effect == "rainbow"
+
+
+def test_extra_state_attributes_exposes_underlying_entity_id(
+    fake_coordinator, fake_config_entry
+) -> None:
+    entity = _make_entity(fake_coordinator, fake_config_entry)
+
+    assert entity.extra_state_attributes == {
+        ATTR_UNDERLYING_ENTITY_ID: UNDERLYING_ENTITY_ID,
+    }
 
 
 def test_color_mode_infers_from_hs_color(fake_coordinator, fake_config_entry) -> None:

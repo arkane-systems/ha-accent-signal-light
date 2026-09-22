@@ -49,6 +49,20 @@ ATTR_ACCENT_NAME = "accent_name"
 # Integer priority — higher numbers take precedence.
 ATTR_PRIORITY = "priority"
 
+# ── Attribute keys ─────────────────────────────────────────────────────────────
+
+# Name string that uniquely identifies an accent/signal entry within its layer.
+ATTR_NAME = "name"
+
+# Light attributes (kwargs forwarded to light.turn_on) of an accent/signal entry.
+ATTR_ATTRS = "attrs"
+
+# The entity_id of the underlying physical light, exposed for debugging.
+ATTR_UNDERLYING_ENTITY_ID = "underlying_entity_id"
+
+# The configured signal wake priority threshold, exposed for debugging.
+ATTR_SIGNAL_WAKE_PRIORITY = "signal_wake_priority"
+
 # ── Sensor unique-ID suffixes ──────────────────────────────────────────────────
 
 # Name of the currently-active signal (highest priority), or "none".
