@@ -1,6 +1,6 @@
 # ![icon](assets/ha-accent-signal-light-32x32.png) Accent & Signal Light — Home Assistant Integration
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
 **Accent & Signal Light** is a Home Assistant custom integration that lets you manage
 accent and notification lights without writing complex bookkeeping automations.
@@ -105,11 +105,17 @@ Signals are added/removed via the `signal_light.set_signal` and
 
 ### HACS (recommended)
 
-1. Open **HACS → Integrations → ⋮ → Custom repositories**.
-2. Add `https://github.com/arkane-systems/ha-accent-signal-light` as an
-   **Integration** repository.
-3. Search for **Accent & Signal Light** and click **Download**.
-4. Restart Home Assistant.
+Accent & Signal Light is available in the default HACS repository, so no custom
+repository needs to be added.
+
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=arkane-systems&repository=ha-accent-signal-light&category=integration)
+
+1. Click the badge above to open the repository in HACS on your Home Assistant
+   instance, or open **HACS** in your sidebar and search for
+   **Accent & Signal Light**.
+2. Click **Download**.
+3. Restart Home Assistant.
+4. Add the integration via **Settings → Devices & Services → Add Integration**.
 
 ### Manual
 
