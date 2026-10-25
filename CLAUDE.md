@@ -19,13 +19,42 @@ history for the rejected alternative). Don't "finish the rename" by touching the
 
 ## Development workflow
 
-There is no build, test, or lint pipeline in this repo — it's a pure HA integration validated only by
-HA's own integration loader at runtime. Development/verification is done by:
+There is no build or lint step — it's a pure HA integration — but there is a pytest suite, and CI runs it.
 
-1. Copying `custom_components/signal_light/` into a Home Assistant instance's `custom_components/`.
-2. Restarting HA and adding the integration via **Settings → Devices & Services → Add Integration**.
-3. Exercising it through the HA UI, automations, or the four `signal_light.*` services, and checking
-   HA's log for errors.
+### Tests
+
+The suite in `tests/` uses `pytest-homeassistant-custom-component`, which provides an in-memory HA core,
+so no real server, network, or lights are involved. Pinned versions are in `requirements_test.txt`; the
+pinned Home Assistant needs Python 3.13, which is also what CI uses. `pytest.ini` sets
+`asyncio_mode = auto` and `testpaths = tests`.
+
+```bash
+pip install -r requirements_test.txt
+pytest
+```
+
+- `tests/conftest.py` holds the shared fixtures: a fake underlying light, a mock config entry, a
+  `coordinator` wired to fake `light.turn_on`/`light.turn_off` services (so tests can assert on exactly
+  what was sent to the physical light), `setup_integration` for the full light + sensor setup, and
+  `FakeCoordinator` for pure property tests.
+- Layer logic goes in `test_coordinator.py`, entity behaviour in `test_light.py`/`test_sensor.py`,
+  setup/unload and the service schemas in `test_init.py`, and the config flow in `test_config_flow.py`.
+- When fixing a bug, add a regression test (see the GH #6 suite in `test_coordinator.py`).
+
+### CI
+
+Three GitHub Actions workflows in `.github/workflows/` run on every push and pull request:
+`test.yml` (the pytest suite), `hassfest.yml` (Home Assistant's own integration validation), and
+`validate.yml` (HACS validation).
+
+### Manual verification
+
+Tests don't replace trying a change on a real instance:
+
+1. Copy `custom_components/signal_light/` into a Home Assistant instance's `custom_components/`.
+2. Restart HA and add the integration via **Settings → Devices & Services → Add Integration**.
+3. Exercise it through the HA UI, automations, or the four `signal_light.*` services, and check HA's log
+   for errors.
 
 ## Architecture
 
