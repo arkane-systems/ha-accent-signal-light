@@ -53,6 +53,7 @@ from homeassistant.components.light import (
     ATTR_RGB_COLOR,
     ATTR_RGBW_COLOR,
     ATTR_RGBWW_COLOR,
+    ATTR_TRANSITION,
     ATTR_XY_COLOR,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -209,7 +210,9 @@ class SignalLightCoordinator:
             )
         )
 
-    async def async_set_base_on(self, attrs: dict[str, Any]) -> None:
+    async def async_set_base_on(
+        self, attrs: dict[str, Any], transition: float | None = None
+    ) -> None:
         """Turn the base layer on with *attrs* as light parameters.
 
         *attrs* is merged into the existing base-layer attributes so that
@@ -217,8 +220,12 @@ class SignalLightCoordinator:
         preserve the previously-set colour.
 
         Args:
-            attrs: Light attribute kwargs (brightness, hs_color, …) as would
-                   be passed to ``light.turn_on``.
+            attrs:      Light attribute kwargs (brightness, hs_color, …) as
+                        would be passed to ``light.turn_on``.
+            transition: Fade time in seconds for the physical light's change
+                        in response to this command.  It is not stored with
+                        the base layer, so later re-applications of the base
+                        layer do not replay it.
         """
         attrs = dict(attrs)
         self._normalize_attrs(attrs)
@@ -233,18 +240,22 @@ class SignalLightCoordinator:
                 self._base_attrs.pop(ATTR_EFFECT, None)
         self._base_attrs.update(attrs)
         _LOGGER.debug("Base layer on: %s", self._base_attrs)
-        await self._async_apply_state()
+        await self._async_apply_state(transition)
         self._async_notify_listeners()
 
-    async def async_set_base_off(self) -> None:
+    async def async_set_base_off(self, transition: float | None = None) -> None:
         """Turn the base layer off.
 
         The stored attributes are *not* cleared so that re-enabling the base
         layer restores the last-set colour.
+
+        Args:
+            transition: Fade time in seconds for the physical light's change
+                        in response to this command.
         """
         self._base_on = False
         _LOGGER.debug("Base layer off")
-        await self._async_apply_state()
+        await self._async_apply_state(transition)
         self._async_notify_listeners()
 
     # =========================================================================
@@ -426,12 +437,20 @@ class SignalLightCoordinator:
             keep_attr,
         )
 
-    async def _async_apply_state(self) -> None:
+    async def _async_apply_state(self, transition: float | None = None) -> None:
         """Push the current effective state to the underlying physical light.
 
         Called internally after every mutation.  Translates the effective state
         into either a ``light.turn_on`` or ``light.turn_off`` service call on
         :attr:`underlying_entity_id`.
+
+        Args:
+            transition: A fade time, in seconds, requested by the command that
+                        caused this apply.  It applies to this call only and
+                        takes precedence over any ``transition`` carried by
+                        the effective layer's own attributes.  ``None`` leaves
+                        the layer's own attributes (if any) untouched; ``0``
+                        is a real request for no fade.
         """
         if not self._async_underlying_available():
             _LOGGER.debug(
@@ -445,6 +464,8 @@ class SignalLightCoordinator:
         if on:
             service_data: dict[str, Any] = {"entity_id": self.underlying_entity_id}
             service_data.update(attrs)
+            if transition is not None:
+                service_data[ATTR_TRANSITION] = transition
             _LOGGER.debug(
                 "Applying to %s: turn_on %s", self.underlying_entity_id, attrs
             )
@@ -452,11 +473,12 @@ class SignalLightCoordinator:
                 "light", "turn_on", service_data, blocking=True
             )
         else:
+            service_data = {"entity_id": self.underlying_entity_id}
+            if transition is not None:
+                service_data[ATTR_TRANSITION] = transition
             _LOGGER.debug(
-                "Applying to %s: turn_off", self.underlying_entity_id
+                "Applying to %s: turn_off %s", self.underlying_entity_id, service_data
             )
             await self.hass.services.async_call(
-                "light", "turn_off",
-                {"entity_id": self.underlying_entity_id},
-                blocking=True,
+                "light", "turn_off", service_data, blocking=True
             )

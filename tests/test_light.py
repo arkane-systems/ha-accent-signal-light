@@ -5,7 +5,10 @@ from __future__ import annotations
 from homeassistant.components.light import ColorMode
 from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import mock_restore_cache
+from pytest_homeassistant_custom_component.common import (
+    async_capture_events,
+    mock_restore_cache,
+)
 
 from custom_components.signal_light.const import (
     ATTR_ACCENT_NAME,
@@ -266,3 +269,68 @@ async def test_clear_accent_service_call(hass, setup_integration) -> None:
         blocking=True,
     )
     assert coordinator.active_accent is None
+
+
+# ── transition pass-through (real services; observe via call_service events) ─
+
+
+def _underlying_service_events(events, service: str) -> list:
+    """The call_service events aimed at the underlying light (not the base)."""
+    return [
+        event
+        for event in events
+        if event.data["service"] == service
+        and event.data["service_data"].get("entity_id") == UNDERLYING_ENTITY_ID
+    ]
+
+
+async def test_turn_on_transition_reaches_underlying_light(
+    hass, setup_integration
+) -> None:
+    entity_id = _base_entity_id(hass, setup_integration)
+    events = async_capture_events(hass, "call_service")
+
+    await hass.services.async_call(
+        "light",
+        "turn_on",
+        {"entity_id": entity_id, "brightness": 200, "transition": 5},
+        blocking=True,
+    )
+
+    calls = _underlying_service_events(events, "turn_on")
+    assert len(calls) == 1
+    assert calls[0].data["service_data"]["transition"] == 5
+
+
+async def test_turn_off_transition_reaches_underlying_light(
+    hass, setup_integration
+) -> None:
+    entity_id = _base_entity_id(hass, setup_integration)
+    await hass.services.async_call(
+        "light", "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+    events = async_capture_events(hass, "call_service")
+
+    await hass.services.async_call(
+        "light", "turn_off", {"entity_id": entity_id, "transition": 5}, blocking=True
+    )
+
+    calls = _underlying_service_events(events, "turn_off")
+    assert len(calls) == 1
+    assert calls[0].data["service_data"]["transition"] == 5
+
+
+async def test_turn_on_transition_not_kept_in_base_attrs(
+    hass, setup_integration
+) -> None:
+    entity_id = _base_entity_id(hass, setup_integration)
+    coordinator = hass.data[DOMAIN][setup_integration.entry_id][DATA_COORDINATOR]
+
+    await hass.services.async_call(
+        "light",
+        "turn_on",
+        {"entity_id": entity_id, "brightness": 200, "transition": 5},
+        blocking=True,
+    )
+
+    assert coordinator.base_attrs == {"brightness": 200}

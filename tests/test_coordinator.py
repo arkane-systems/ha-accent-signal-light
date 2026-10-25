@@ -243,3 +243,106 @@ async def test_signal_clear_reapply_only_when_active_changed(
 
     await coordinator.async_clear_signal("high")
     assert len(light_service_calls["turn_on"]) == calls_before + 1
+
+
+# ── One-shot transition on base-layer commands ───────────────────────────────
+
+
+async def test_base_on_transition_is_forwarded_to_underlying(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100}, transition=5)
+
+    assert light_service_calls["turn_on"][-1].data["transition"] == 5
+
+
+async def test_base_on_without_transition_sends_none(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100})
+
+    assert "transition" not in light_service_calls["turn_on"][-1].data
+
+
+async def test_base_on_zero_transition_is_forwarded(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    # 0 means "snap, no fade" -- it must not be mistaken for "not given".
+    await coordinator.async_set_base_on({"brightness": 100}, transition=0)
+
+    assert light_service_calls["turn_on"][-1].data["transition"] == 0
+
+
+async def test_base_on_transition_is_not_persisted_in_base_attrs(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100}, transition=5)
+
+    assert "transition" not in coordinator.base_attrs
+
+    # A later re-apply of the base layer (here: a signal above it clears)
+    # must not replay the earlier command's fade.
+    await coordinator.async_set_signal("sig", 10, {"brightness": 200})
+    await coordinator.async_clear_signal("sig")
+
+    assert "transition" not in light_service_calls["turn_on"][-1].data
+
+
+async def test_base_off_transition_is_forwarded_to_underlying(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100})
+    await coordinator.async_set_base_off(transition=5)
+
+    assert light_service_calls["turn_off"][-1].data["transition"] == 5
+
+
+async def test_base_off_without_transition_sends_none(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100})
+    await coordinator.async_set_base_off()
+
+    assert "transition" not in light_service_calls["turn_off"][-1].data
+
+
+async def test_base_off_transition_forwarded_when_accent_active(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    # Accents never keep the light on once the base layer is off, so the
+    # fade-out belongs to the turn_off that results.
+    await coordinator.async_set_base_on({"brightness": 100})
+    await coordinator.async_set_accent("mood", 10, {"brightness": 200})
+    await coordinator.async_set_base_off(transition=5)
+
+    assert light_service_calls["turn_off"][-1].data["transition"] == 5
+
+
+async def test_base_on_transition_applies_when_accent_takes_over(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_accent("mood", 10, {"brightness": 200})
+    await coordinator.async_set_base_on({}, transition=5)
+
+    last_call = light_service_calls["turn_on"][-1]
+    assert last_call.data["brightness"] == 200
+    assert last_call.data["transition"] == 5
+
+
+async def test_layer_own_transition_still_forwarded(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100})
+    await coordinator.async_set_signal("sig", 10, {"brightness": 200, "transition": 2})
+
+    assert light_service_calls["turn_on"][-1].data["transition"] == 2
+
+
+async def test_command_transition_overrides_layer_transition(
+    coordinator: SignalLightCoordinator, light_service_calls: dict[str, list]
+) -> None:
+    await coordinator.async_set_base_on({"brightness": 100})
+    await coordinator.async_set_signal("sig", 10, {"brightness": 200, "transition": 2})
+    await coordinator.async_set_base_on({"brightness": 50}, transition=5)
+
+    assert light_service_calls["turn_on"][-1].data["transition"] == 5

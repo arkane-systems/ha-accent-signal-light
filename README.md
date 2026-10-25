@@ -174,6 +174,12 @@ signal is overriding the physical light.  It also exposes
 (or light group) this instance wraps — useful for debugging or for automations
 that need to inspect the underlying entity's real state directly.
 
+`transition` on the base light's `light.turn_on` and `light.turn_off` is passed
+through to the physical light, so you can fade it in or out.  It applies to that
+one command only: it isn't remembered as part of the base state, so later
+changes (for example a signal clearing and the base layer resuming) happen
+without a fade unless the layer being restored carries its own `transition`.
+
 ### Sensor entities
 
 All sensor entities report their data as both `state` and `extra_state_attributes`.
