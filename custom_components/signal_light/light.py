@@ -511,23 +511,30 @@ class SignalBaseLight(LightEntity, RestoreEntity):
         """Turn the base layer on.
 
         All standard ``light.turn_on`` keyword arguments (brightness, colour,
-        effect, transition, …) are accepted and forwarded to the coordinator.
+        effect, transition, …) are accepted.  ``transition`` is a property of
+        this command, not of the base layer: it is passed to the coordinator
+        separately so it is applied once and never stored with the base-layer
+        attributes.
 
         Args:
             **kwargs: Light attribute keyword arguments.
         """
         _LOGGER.debug("Base layer turn_on: %s", kwargs)
-        await self.coordinator.async_set_base_on(kwargs)
+        transition = kwargs.pop(ATTR_TRANSITION, None)
+        await self.coordinator.async_set_base_on(kwargs, transition=transition)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the base layer off.
 
         Args:
-            **kwargs: Accepted for API compatibility (e.g. ``transition``);
-                      forwarded to the coordinator for bookkeeping.
+            **kwargs: Standard ``light.turn_off`` keyword arguments.  Only
+                      ``transition`` is used; it is passed to the coordinator
+                      to fade the physical light out.
         """
-        _LOGGER.debug("Base layer turn_off")
-        await self.coordinator.async_set_base_off()
+        _LOGGER.debug("Base layer turn_off: %s", kwargs)
+        await self.coordinator.async_set_base_off(
+            transition=kwargs.get(ATTR_TRANSITION)
+        )
 
     # ── Entity-service handlers ────────────────────────────────────────────────
     # These methods are called by HA's entity-service routing when a caller
