@@ -70,6 +70,12 @@ top-down; the highest non-empty layer controls the physical light:
 3. **Base layer** — the default ambient state, exposed as a standard HA `light` entity. Active only
    when accent and signal layers are empty.
 
+Signals and accents only take effect while the base layer is **on**. When the base layer is off, accents
+never turn the light on, and a signal does so only if its priority is strictly greater than the
+instance's `signal_wake_priority` (default 5000); otherwise the light stays off. The base layer
+represents what the user last asked for, not what the hardware is doing, so anything that switches the
+underlying light directly (bypassing the base entity) leaves the base layer out of step with it.
+
 Accent/signal entries are plain dicts: `{"name": str, "priority": int, "attrs": dict}`. Both
 collections are kept sorted by `priority` descending (index 0 is always the active entry);
 insertion/deletion are O(n), which is fine given the expected <10 entries per instance. `name` acts as
@@ -84,7 +90,9 @@ a primary key — setting an existing name replaces the entry in place.
   underlying entity isn't available yet at startup, apply calls are deferred until the coordinator
   observes it becoming available. Before `turn_on`, color attributes are normalized so only one of
   `color_name`, `hs_color`, `rgb_color`, `rgbw_color`, `rgbww_color`, `xy_color`, or
-  `color_temp_kelvin` is ever sent.
+  `color_temp_kelvin` is ever sent. A `transition` on a base-layer `turn_on`/`turn_off` is applied to
+  that one underlying call only and is never stored in the base attributes (a signal's or accent's own
+  `transition` is stored with it, as part of its attributes).
 - **`light.py`** — `SignalBaseLight`, the base-layer light entity exposed to users/automations. Extends
   `RestoreEntity` so base-layer state survives restarts (accent/signal layers are intentionally *not*
   persisted — they're expected to be repopulated by automations, e.g. on `homeassistant.start`).
@@ -97,11 +105,15 @@ a primary key — setting an existing name replaces the entry in place.
   `hass.data[DOMAIN][entry.entry_id]`, forwards setup to platforms, and registers the four domain
   services as *entity services* on the `light` platform (not domain-level), so HA validates/routes
   `entity_id`/`device_id` targets automatically and multiple instances stay fully isolated.
-- **`config_flow.py`** — UI setup flow; the config entry stores one key,
-  `CONF_UNDERLYING_ENTITY_ID` (the physical light's `entity_id`).
+- **`config_flow.py`** — UI setup and reconfigure flow. The config entry stores
+  `CONF_UNDERLYING_ENTITY_ID` (the physical light's `entity_id`) and `CONF_SIGNAL_WAKE_PRIORITY`.
+  Entries created before the wake priority existed lack the latter, so always read it with
+  `.get(..., DEFAULT_SIGNAL_WAKE_PRIORITY)`.
 - **`const.py`** — every string literal that appears in more than one place, or that carries semantic
   meaning beyond a plain dict key (domain, config keys, `hass.data` keys, service/field names, sensor
   suffixes, defaults). Use these constants rather than hardcoding duplicated strings.
+- **Non-Python files** — `services.yaml` (service schemas for HA's UI), `strings.json` and
+  `translations/en.json` (UI text; currently identical, so edit both together), `manifest.json`.
 
 ### Listener pattern
 
@@ -111,9 +123,18 @@ every mutation, and each listener calls `write_ha_state()` on its entity.
 
 ### Entity IDs
 
-For an instance named "Living Room": `light.living_room_signal_light_base`,
-`sensor.living_room_signal_light_active_signal`, `..._active_accent`, `..._signal_queue`,
-`..._accent_stack` — all grouped under one HA device.
+Entity names are `"<instance title> Base"` (the light) and `"<instance title> <Sensor Name>"`, so for an
+instance named "Living Room": `light.living_room_base`, `sensor.living_room_active_signal`,
+`..._active_accent`, `..._signal_queue`, `..._accent_stack` — all grouped under one HA device. The
+entity_id is derived from the title when the entity is first registered; unique IDs are based on the
+config entry ID, so they survive renames.
+
+### Debugging
+
+The four sensors show the active signal/accent and the full queue/stack in their attributes, the Active
+Signal sensor also exposes `signal_wake_priority`, and the base light exposes `underlying_entity_id`.
+Compare the base light's state with the underlying light's real state first: a mismatch usually means
+something controlled the underlying light directly.
 
 ## Conventions
 
@@ -122,6 +143,8 @@ For an instance named "Living Room": `light.living_room_signal_light_base`,
   including `color_name`.
 - All integration code is async (`async def`/`await`); use the `@callback` decorator from
   `homeassistant.core` for synchronous callbacks.
+- Modules have a module-level docstring explaining purpose and key concepts; classes and public
+  methods have docstrings with Args/Returns; type hints throughout.
 - `_LOGGER = logging.getLogger(__name__)` per module; DEBUG for routine operations, INFO/ERROR for
   notable events.
 
@@ -133,3 +156,11 @@ For an instance named "Living Room": `light.living_room_signal_light_base`,
 4. Implement the handler on `SignalBaseLight` in `light.py`, delegating to a coordinator method for the
    actual state mutation.
 5. Document the schema in `services.yaml`.
+
+## Adding a new sensor
+
+1. Add a `SENSOR_*` constant for the unique-ID suffix to `const.py`.
+2. Subclass `_SignalLightSensorBase` in `sensor.py` (it already registers the coordinator listener and
+   calls `write_ha_state()` on every update), passing the suffix and a display-name suffix to
+   `super().__init__()`, and implement `native_value` / `extra_state_attributes`.
+3. Instantiate it in `async_setup_entry()` in `sensor.py`.
