@@ -1,6 +1,7 @@
 {
   "domain": "signal_light",
   "name": "Accent & Signal Light",
+  "categories": ["lighting", "messaging_notifications"],
   "codeowners": ["@arkane-systems"],
   "config_flow": true,
   "dependencies": [],

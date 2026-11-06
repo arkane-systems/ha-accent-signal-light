@@ -103,16 +103,19 @@ Signals are added/removed via the `signal_light.set_signal` and
 
 ## 2. Installation
 
-### HACS (recommended)
+### Marketplace or HACS (recommended)
 
-Accent & Signal Light is available in the default HACS repository, so no custom
-repository needs to be added.
+Accent & Signal Light is in the HACS default catalog, so no custom repository
+needs to be added. From Home Assistant 2026.11, HACS is built into Home Assistant
+as the **Marketplace** (**Settings → Marketplace**), where it is listed under the
+*Lighting* and *Messaging & notifications* categories; on earlier versions,
+install it through HACS.
 
 [![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=arkane-systems&repository=ha-accent-signal-light&category=integration)
 
-1. Click the badge above to open the repository in HACS on your Home Assistant
-   instance, or open **HACS** in your sidebar and search for
-   **Accent & Signal Light**.
+1. Click the badge above to open Accent & Signal Light on your Home Assistant
+   instance (it opens the Marketplace on 2026.11 or later, and HACS before that),
+   or search for **Accent & Signal Light** in the Marketplace or HACS.
 2. Click **Download**.
 3. Restart Home Assistant.
 4. Add the integration via **Settings → Devices & Services → Add Integration**.
